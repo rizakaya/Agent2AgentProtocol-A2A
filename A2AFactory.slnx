@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/docs/">
+    <File Path="docs/faz-1.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Factory.Shared/Factory.Shared.csproj" />
+    <Project Path="src/RawSupplier/RawSupplier.csproj" />
+  </Folder>
+</Solution>

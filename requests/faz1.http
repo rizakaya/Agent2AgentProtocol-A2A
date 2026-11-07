@@ -1,0 +1,127 @@
+### =====================================================================
+### FAZ 1: Elle yazılmış A2A sunucusuna istekler
+###
+### Önce sunucuyu başlat:  dotnet run --project src/RawSupplier
+### Sonra Visual Studio / Rider / VS Code (REST Client eklentisi) ile
+### her isteğin üstündeki "Send Request" bağlantısına tıkla.
+### =====================================================================
+
+@host = http://localhost:5100
+
+### 1) KEŞİF: Agent Card'ı oku
+# Bir istemcinin bildiği tek şey kök adres. Gerisini bu karttan öğrenir:
+# adı, becerileri (skills), hangi adrese ve hangi binding ile istek atacağı.
+GET {{host}}/.well-known/agent-card.json
+
+
+### 2) SendMessage: metin ile teklif iste
+# Dikkat et:
+#  - Tüm metodlar aynı adrese (/a2a) gider, işi "method" alanı belirler.
+#  - "A2A-Version: 1.0" header'ı zorunlu (yoksa istemci 0.3 sayılır).
+#  - role: "ROLE_USER", çünkü isteği gönderen biziz.
+#  - Cevapta result.message içinde iki part göreceksin: text + data.
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-001",
+      "role": "ROLE_USER",
+      "parts": [
+        { "text": "500 m çelik boru için fiyat teklifi istiyorum" }
+      ]
+    }
+  }
+}
+
+
+### 3) SendMessage: yapılandırılmış veri (data part) ile teklif iste
+# Programdan programa konuşurken metin yerine JSON verisi göndermek daha güvenli.
+# contextId verdik: cevap aynı contextId ile dönecek (aynı konuşma).
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": "istek-2",
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-002",
+      "contextId": "satinalma-2026-001",
+      "role": "ROLE_USER",
+      "parts": [
+        { "data": { "materialCode": "celik-boru", "quantity": 300 }, "mediaType": "application/json" }
+      ]
+    }
+  }
+}
+
+
+### 4) Satmadığı bir malzeme sor
+# Bu bir protokol hatası DEĞİL. İstek geçerli, ajan sadece "satmıyoruz" diye cevap veriyor.
+# Yani cevapta "error" değil, normal bir "result.message" var.
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-004",
+      "role": "ROLE_USER",
+      "parts": [ { "text": "5000 adet vida lazım" } ]
+    }
+  }
+}
+
+
+### =====================================================================
+### HATA SENARYOLARI
+### Hepsinde HTTP durum kodu 200 olur; hata bilgisi gövdedeki "error" alanındadır.
+### =====================================================================
+
+### 5) Olmayan metod → -32601 Method not found
+# GetTask A2A'da var ama bu sunucuda henüz yok (Faz 3'te gelecek).
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{ "jsonrpc": "2.0", "id": 5, "method": "GetTask", "params": { "id": "abc" } }
+
+
+### 6) Sürüm header'ı yok → -32009 Version not supported
+POST {{host}}/a2a
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "method": "SendMessage",
+  "params": { "message": { "messageId": "m6", "role": "ROLE_USER", "parts": [ { "text": "100 m çelik boru" } ] } }
+}
+
+
+### 7) Bozuk JSON → -32700 Parse error (id: null, çünkü okunamadı)
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{ "jsonrpc": "2.0", "id": 7, "method": "SendMes
+
+
+### 8) Mesajsız istek → -32602 Invalid params
+POST {{host}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{ "jsonrpc": "2.0", "id": 8, "method": "SendMessage", "params": {} }
