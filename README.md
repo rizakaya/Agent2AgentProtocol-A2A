@@ -20,6 +20,11 @@ src/
   Factory.Shared/  → ortak tipler: Material, QuoteRequest, Quote
   RawSupplier/     → Faz 1: SDK'sız, elle yazılmış A2A sunucusu (port 5100)
     RawSupplier.http → sunucuya istek gönderme dosyası
+  Supplier.Agent/  → Faz 2: SDK ile tedarikçi (Çelik A.Ş. :5101, Bağlantı Ltd. :5102)
+    Supplier.Agent.http
+  Purchasing.Agent/ → Faz 2: Satınalma Ajanı (A2A istemcisi, konsol uygulaması)
+scripts/
+  faz2-baslat.ps1  → tüm tedarikçileri ayrı pencerelerde başlatır
 ```
 
 ## Fazlar
@@ -27,13 +32,20 @@ src/
 | Faz | Konu | Durum |
 | --- | --- | --- |
 | 1 | Protokolü çıplak gözle gör (SDK'sız) | ✅ [docs/faz-1.md](docs/faz-1.md) |
-| 2 | SDK ile keşif ve teklif | ⏳ |
+| 2 | SDK ile keşif ve teklif | ✅ [docs/faz-2.md](docs/faz-2.md) |
 | 3 | Sipariş Task'ı, streaming ve artifact | ⏳ |
 | 4 | Pazarlık (input-required) | ⏳ |
 | 5 | Stok ve Üretim zinciri | ⏳ |
 | 6 | (İsteğe bağlı) LLM ile karar veren satınalma | ⏳ |
 
-## Hızlı başlangıç (Faz 1)
+## Hızlı başlangıç (Faz 2)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\faz2-baslat.ps1
+dotnet run --project src\Purchasing.Agent -- celik-boru 500
+```
+
+## Faz 1
 
 ```bash
 dotnet run --project src/RawSupplier

@@ -1,0 +1,131 @@
+### =====================================================================
+### FAZ 2: SDK ile yazılmış tedarikçilere istekler
+###
+### Önce tedarikçileri başlat:  scripts\faz2-baslat.ps1
+### (ya da iki terminalde:  dotnet run --launch-profile CelikAS
+###                         dotnet run --launch-profile BaglantiLtd)
+###
+### Bu isteklerin Faz 1'deki RawSupplier.http ile AYNI olduğuna dikkat et.
+### Sunucu SDK'ya geçti ama kablodaki JSON değişmedi: protokol aynı.
+### =====================================================================
+
+@celik = http://localhost:5101
+@baglanti = http://localhost:5102
+
+### 1) Çelik A.Ş.'nin kartı
+GET {{celik}}/.well-known/agent-card.json
+
+
+### 2) Bağlantı Ltd.'nin kartı: skills[0].tags içinde sattığı malzemelere bak
+GET {{baglanti}}/.well-known/agent-card.json
+
+
+### 3) Çelik A.Ş.'den 500 m boru teklifi (500 m ve üzeri %5 indirim)
+POST {{celik}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-101",
+      "contextId": "satinalma-deneme",
+      "role": "ROLE_USER",
+      "parts": [ { "data": { "materialCode": "celik-boru", "quantity": 500 }, "mediaType": "application/json" } ]
+    }
+  }
+}
+
+
+### 4) Aynı istek Bağlantı Ltd.'ye (liste fiyatı düşük ama indirim yok, teslim 7 gün)
+POST {{baglanti}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-102",
+      "contextId": "satinalma-deneme",
+      "role": "ROLE_USER",
+      "parts": [ { "data": { "materialCode": "celik-boru", "quantity": 500 }, "mediaType": "application/json" } ]
+    }
+  }
+}
+
+
+### 5) Metinle vida iste (sadece Bağlantı Ltd. satıyor)
+POST {{baglanti}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "SendMessage",
+  "params": {
+    "message": {
+      "messageId": "msg-103",
+      "role": "ROLE_USER",
+      "parts": [ { "text": "5000 adet vida lazım" } ]
+    }
+  }
+}
+
+
+### =====================================================================
+### SDK'NIN BİZİM YERİMİZE YAPTIKLARI
+### Bu hataların hiçbirini Supplier.Agent'ta kodlamadık, SDK kendisi dönüyor.
+### =====================================================================
+
+### 6) Olmayan metod → -32601
+POST {{celik}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{ "jsonrpc": "2.0", "id": 6, "method": "Foo", "params": {} }
+
+
+### 7) GetTask → -32001 Task not found
+# İlginç: Faz 1'de GetTask "metod bulunamadı" (-32601) dönüyordu.
+# SDK ise GetTask'ı zaten biliyor; sadece böyle bir Task yok (-32001). Task'ları Faz 3'te açacağız.
+POST {{celik}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{ "jsonrpc": "2.0", "id": 7, "method": "GetTask", "params": { "id": "olmayan-task" } }
+
+
+### 8) Eski sürüm role değeri ("user") → -32602
+# v0.3'te "user" idi, v1.0'da "ROLE_USER". Faz 1'deki sunucumuz bunu kontrol etmiyordu, SDK ediyor.
+POST {{celik}}/a2a
+Content-Type: application/json
+A2A-Version: 1.0
+
+{
+  "jsonrpc": "2.0",
+  "id": 8,
+  "method": "SendMessage",
+  "params": { "message": { "messageId": "m8", "role": "user", "parts": [ { "text": "100 m çelik boru" } ] } }
+}
+
+
+### 9) Desteklenmeyen sürüm → -32009
+# Not: Header'ı hiç göndermezsen SDK isteği 0.3 sayar ve kabul eder, çünkü 0.3 ile de uyumlu.
+# Faz 1'deki sunucumuz sadece 1.0 konuştuğu için header'sız isteği reddediyordu.
+POST {{celik}}/a2a
+Content-Type: application/json
+A2A-Version: 9.9
+
+{
+  "jsonrpc": "2.0",
+  "id": 9,
+  "method": "SendMessage",
+  "params": { "message": { "messageId": "m9", "role": "ROLE_USER", "parts": [ { "text": "100 m çelik boru" } ] } }
+}

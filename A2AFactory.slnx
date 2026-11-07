@@ -4,9 +4,15 @@
   </Folder>
   <Folder Name="/docs/">
     <File Path="docs/faz-1.md" />
+    <File Path="docs/faz-2.md" />
+  </Folder>
+  <Folder Name="/scripts/">
+    <File Path="scripts/faz2-baslat.ps1" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Factory.Shared/Factory.Shared.csproj" />
+    <Project Path="src/Purchasing.Agent/Purchasing.Agent.csproj" />
     <Project Path="src/RawSupplier/RawSupplier.csproj" />
+    <Project Path="src/Supplier.Agent/Supplier.Agent.csproj" />
   </Folder>
 </Solution>
